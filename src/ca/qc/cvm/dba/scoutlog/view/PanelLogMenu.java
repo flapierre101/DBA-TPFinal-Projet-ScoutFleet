@@ -102,7 +102,7 @@ public class PanelLogMenu extends CommonPanel {
 	@Override
 	public void resetUI() {
 		info.setText("Aucune entrée...");
-		int entriesCount = Facade.getInstance().getNumberOfEntries();
+		long entriesCount = Facade.getInstance().getNumberOfEntries();
 		
 		deleteBtn.setEnabled(entriesCount > 0);
 		

@@ -97,7 +97,7 @@ public class MngApplication implements Runnable {
 		}
 	}
 	
-	public int getNumberOfEntries() {
+	public long getNumberOfEntries() {
 		return LogDAO.getNumberOfEntries();
 	}
 	

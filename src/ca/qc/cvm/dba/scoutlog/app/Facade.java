@@ -43,7 +43,7 @@ public class Facade {
 		return app.getPlanetList();
 	}
 	
-	public int getNumberOfEntries() {
+	public long getNumberOfEntries() {
 		return app.getNumberOfEntries();
 	}
 	
