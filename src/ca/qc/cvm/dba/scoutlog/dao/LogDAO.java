@@ -97,8 +97,23 @@ public class LogDAO {
 	 * @return le nom des planètes déjà explorées
 	 */
 	public static List<String> getPlanetList() {
-		List<String> planets = new ArrayList<String>();
-
+		final List<String> planets = new ArrayList<String>();
+		MongoDatabase connectionMongo = MongoConnection.getConnection();
+		MongoCollection<Document> collection = connectionMongo.getCollection("logentry");
+		
+		FindIterable<Document> iterator = collection.find();
+		try {
+			iterator.forEach(new Block<Document>() {
+				@Override
+				public void apply(final Document document) {
+					String planet = document.getString("planetName");
+					planets.add(planet);
+				}
+			});
+		}
+		catch (Exception e) {
+			e.printStackTrace();
+		}
 		// Exemple...
 		planets.add("Terre");
 		planets.add("Solaria");
@@ -152,7 +167,7 @@ public class LogDAO {
 									document.getString("status"), document.getString("reasons"), test,
 									document.getString("planetName"), document.getString("galaxyName"), 
 									getPlanetImage(document.getString("imageKey")), document.getBoolean("habitable")));
-							
+								// changer true/false de habitable par des mot plus significatif
 							break;
 						}
 					}
