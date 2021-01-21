@@ -168,7 +168,7 @@ public class LogDAO {
 									document.getString("status"), document.getString("reasons"), test,
 									document.getString("planetName"), document.getString("galaxyName"), 
 									getPlanetImage(document.getString("imageKey")), document.getBoolean("habitable")));
-								// changer true/false de habitable par des mot plus significatif
+								// changer true/false de habitable par des mots plus significatifs
 							break;
 						}
 					}
@@ -242,7 +242,14 @@ public class LogDAO {
 	 * @return nombre total
 	 */
 	public static int getNumberOfHabitablePlanets() {
-		return 0;
+		int habPlanet = 0;
+		MongoDatabase connectionMongo = MongoConnection.getConnection();
+		MongoCollection<Document> collection = connectionMongo.getCollection("logentry");
+		Document where = new Document("habitable", true);
+		where.append("status", "Exploration");
+		habPlanet = (int)collection.count(where);
+		
+		return habPlanet;
 	}
 
 	/**
@@ -252,7 +259,15 @@ public class LogDAO {
 	 * @return moyenne, entre 0 et 100
 	 */
 	public static int getExplorationAverage() {
-		return 0;
+		int tempoExplo = 0;
+		int avg = 0;
+		MongoDatabase connectionMongo = MongoConnection.getConnection();
+		MongoCollection<Document> collection = connectionMongo.getCollection("logentry");
+
+		Document where = new Document("status", "Exploration");
+		tempoExplo = (int)collection.count(where);
+		avg = tempoExplo * 100 / (int)getNumberOfEntries();
+		return avg;
 	}
 
 	/**
@@ -276,8 +291,10 @@ public class LogDAO {
 		catch (Exception e) {
 			e.printStackTrace();
 		}
-		if (c != null) {
-			c.close();
+		finally {
+			if (c != null) {
+				c.close();
+			}
 		}
 		return counter;
 	}
@@ -289,8 +306,28 @@ public class LogDAO {
 	 * @return
 	 */
 	public static List<String> getLastVisitedPlanets(int limit) {
-		List<String> planetList = new ArrayList<String>();
-
+		final List<String> planetList = new ArrayList<String>();
+		MongoDatabase connectionMongo = MongoConnection.getConnection();
+		MongoCollection<Document> collection = connectionMongo.getCollection("logentry");
+		
+		Document query = new Document();
+		Document orderBy = new Document ("date", -1);
+		FindIterable<Document> iterator = collection.find(query).sort(orderBy).limit(limit);
+		
+		try {
+			iterator.forEach(new Block<Document>() {
+				@Override
+				public void apply(final Document document) {
+					if (document.getString("status").equals("Exploration")){
+						planetList.add(document.getString("planetName"));
+					}
+				}
+			});
+		}
+		catch (Exception e) {
+			e.printStackTrace();
+		}
+		//jamais 5 seulement 4??
 		return planetList;
 	}
 
@@ -312,7 +349,17 @@ public class LogDAO {
 	 *         "toPlanet", ou null si aucun chemin trouvé
 	 */
 	public static List<String> getTrajectory(String fromPlanet, String toPlanet) {
-
+		MongoDatabase connectionMongo = MongoConnection.getConnection();
+		MongoCollection<Document> collection = connectionMongo.getCollection("logentry");
+		long planetCount = 0;
+		//String tempoString = null;
+		
+		Document where = new Document("planets", fromPlanet);
+		
+		planetCount = collection.count(where);
+		System.out.println(planetCount);
+		
+		
 		return null;
 	}
 
