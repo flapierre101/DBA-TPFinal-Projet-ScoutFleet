@@ -144,8 +144,12 @@ public class LogDAO {
 									document.getString("status"), document.getString("reasons")));
 							break;
 						case "Exploration":
+							
+							System.out.println(document.get("planets").toString()); 
+							List <String> test = new ArrayList<>();	
+							test.add(document.get("planets").toString());
 							resultLogs.add(new LogEntry(document.getString("date"), document.getString("name"),
-									document.getString("status"), document.getString("reasons"), null,
+									document.getString("status"), document.getString("reasons"), test,
 									document.getString("planetName"), document.getString("galaxyName"), 
 									getPlanetImage(document.getString("imageKey")), document.getBoolean("habitable")));
 							

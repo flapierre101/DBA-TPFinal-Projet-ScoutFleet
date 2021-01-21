@@ -96,7 +96,7 @@ public class PanelData extends CommonPanel {
 						@Override
 						public void actionPerformed(ActionEvent e) {
 							String p1 = jcd.getSelectedItem().toString();
-							String p2 = jcd.getSelectedItem().toString();
+							String p2 = jcd2.getSelectedItem().toString();
 							
 							List<String> path = Facade.getInstance().getTrajectory(p1, p2);
 							
