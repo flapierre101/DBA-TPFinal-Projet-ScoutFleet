@@ -1,5 +1,6 @@
 package ca.qc.cvm.dba.scoutlog.dao;
 
+import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Date;
@@ -187,7 +188,32 @@ public class LogDAO {
 	 */
 	public static boolean deleteLog(int position) {
 		boolean success = false;
-
+		
+		// MongoDB
+		MongoDatabase connectionMongo = MongoConnection.getConnection();
+		MongoCollection<Document> collection = connectionMongo.getCollection("logentry");
+		LogEntry toDelete = getLogEntryByPosition(position);
+		Document docToDelete = new Document ("date", toDelete.getDate());
+		
+		// BerkeleyDB
+		Database connectionBK = BerkeleyConnection.getConnection();
+		String keyToDelete = toDelete.getPlanetName();
+		
+		try {
+			// Mongo suite
+			collection.deleteOne( docToDelete );
+			
+			// Berkeley suite
+			DatabaseEntry theKey = new DatabaseEntry(keyToDelete.getBytes("UTF-8"));
+			connectionBK.delete(null, theKey);
+			
+			//Sucess si pas d'exeption
+			success = true;
+		}
+		catch(Exception e) {
+			e.printStackTrace();
+			success = false;
+		}
 		return success;
 	}
 
@@ -235,7 +261,25 @@ public class LogDAO {
 	 * @return nombre total
 	 */
 	public static int getPhotoCount() {
-		return 0;
+		Database connectionBK = BerkeleyConnection.getConnection();
+		Cursor c = null;
+		int counter = 0;
+		try {
+			c = connectionBK.openCursor(null, null);
+			
+		    DatabaseEntry foundKey = new DatabaseEntry();
+		    DatabaseEntry foundData = new DatabaseEntry();
+		    while (c.getNext(foundKey, foundData, LockMode.DEFAULT) == OperationStatus.SUCCESS) {
+		    	counter ++;
+		    }
+		}
+		catch (Exception e) {
+			e.printStackTrace();
+		}
+		if (c != null) {
+			c.close();
+		}
+		return counter;
 	}
 
 	/**
@@ -291,7 +335,47 @@ public class LogDAO {
 	 */
 	public static boolean deleteAll() {
 		boolean success = false;
-
+		Database connectionBK = BerkeleyConnection.getConnection();
+		Cursor c = null;
+		List <String> aDelete = new ArrayList<String>();
+		MongoDatabase connectionMongo = MongoConnection.getConnection();
+		MongoCollection<Document> collection = connectionMongo.getCollection("logentry");
+		try {
+			// BerkeleyDB
+			c = connectionBK.openCursor(null, null);
+			
+		    DatabaseEntry foundKey = new DatabaseEntry();
+		    DatabaseEntry foundData = new DatabaseEntry();
+		    while (c.getNext(foundKey, foundData, LockMode.DEFAULT) == OperationStatus.SUCCESS) {
+		    	aDelete.add(new String(foundKey.getData(), "UTF-8"));
+		    }
+		    
+		    // MongoDB
+		    
+		    collection.drop();
+		}
+		catch (Exception e) {
+			e.printStackTrace();
+			success = false;
+		}
+		finally {
+			if (c != null) {
+				c.close();
+				// Berkeley suite
+				for (String delKey : aDelete) {
+					try {
+						DatabaseEntry foundKey = new DatabaseEntry(delKey.getBytes("UTF-8"));
+						connectionBK.delete(null, foundKey);
+					}
+					catch(UnsupportedEncodingException e) {
+						e.printStackTrace();
+						success = false;
+					}
+				}
+			}
+			success = true;
+		}
+		
 		return success;
 	}
 	
