@@ -101,7 +101,7 @@ public class LogDAO {
 		final List<String> planets = new ArrayList<String>();
 		MongoDatabase connectionMongo = MongoConnection.getConnection();
 		MongoCollection<Document> collection = connectionMongo.getCollection("logentry");
-		
+
 		FindIterable<Document> iterator = collection.find();
 		try {
 			iterator.forEach(new Block<Document>() {
@@ -111,8 +111,7 @@ public class LogDAO {
 					planets.add(planet);
 				}
 			});
-		}
-		catch (Exception e) {
+		} catch (Exception e) {
 			e.printStackTrace();
 		}
 		// Exemple...
@@ -135,8 +134,8 @@ public class LogDAO {
 	 * @return
 	 */
 	public static LogEntry getLogEntryByPosition(int position) {
-		final List <LogEntry> resultLogs = new ArrayList<LogEntry>();
-		
+		final List<LogEntry> resultLogs = new ArrayList<LogEntry>();
+
 		MongoDatabase connectionMongo = MongoConnection.getConnection();
 		MongoCollection<Document> collection = connectionMongo.getCollection("logentry");
 
@@ -148,7 +147,7 @@ public class LogDAO {
 				@Override
 				public void apply(final Document document) {
 					String status = document.getString("status");
-					
+
 					if (status != null) {
 						switch (status) {
 						case "Normal":
@@ -160,15 +159,15 @@ public class LogDAO {
 									document.getString("status"), document.getString("reasons")));
 							break;
 						case "Exploration":
-							
-							System.out.println(document.get("planets").toString()); 
-							List <String> test = new ArrayList<>();	
+
+							// System.out.println(document.get("planets").toString());
+							List<String> test = new ArrayList<>();
 							test.add(document.get("planets").toString());
 							resultLogs.add(new LogEntry(document.getString("date"), document.getString("name"),
 									document.getString("status"), document.getString("reasons"), test,
-									document.getString("planetName"), document.getString("galaxyName"), 
+									document.getString("planetName"), document.getString("galaxyName"),
 									getPlanetImage(document.getString("imageKey")), document.getBoolean("habitable")));
-								// changer true/false de habitable par des mots plus significatifs
+							// changer true/false de habitable par des mots plus significatifs
 							break;
 						}
 					}
@@ -188,29 +187,28 @@ public class LogDAO {
 	 */
 	public static boolean deleteLog(int position) {
 		boolean success = false;
-		
+
 		// MongoDB
 		MongoDatabase connectionMongo = MongoConnection.getConnection();
 		MongoCollection<Document> collection = connectionMongo.getCollection("logentry");
 		LogEntry toDelete = getLogEntryByPosition(position);
-		Document docToDelete = new Document ("date", toDelete.getDate());
-		
+		Document docToDelete = new Document("date", toDelete.getDate());
+
 		// BerkeleyDB
 		Database connectionBK = BerkeleyConnection.getConnection();
 		String keyToDelete = toDelete.getPlanetName();
-		
+
 		try {
 			// Mongo suite
-			collection.deleteOne( docToDelete );
-			
+			collection.deleteOne(docToDelete);
+
 			// Berkeley suite
 			DatabaseEntry theKey = new DatabaseEntry(keyToDelete.getBytes("UTF-8"));
 			connectionBK.delete(null, theKey);
-			
-			//Sucess si pas d'exeption
+
+			// Sucess si pas d'exeption
 			success = true;
-		}
-		catch(Exception e) {
+		} catch (Exception e) {
 			e.printStackTrace();
 			success = false;
 		}
@@ -247,8 +245,8 @@ public class LogDAO {
 		MongoCollection<Document> collection = connectionMongo.getCollection("logentry");
 		Document where = new Document("habitable", true);
 		where.append("status", "Exploration");
-		habPlanet = (int)collection.count(where);
-		
+		habPlanet = (int) collection.count(where);
+
 		return habPlanet;
 	}
 
@@ -265,8 +263,10 @@ public class LogDAO {
 		MongoCollection<Document> collection = connectionMongo.getCollection("logentry");
 
 		Document where = new Document("status", "Exploration");
-		tempoExplo = (int)collection.count(where);
-		avg = tempoExplo * 100 / (int)getNumberOfEntries();
+		tempoExplo = (int) collection.count(where);
+		if (getNumberOfEntries() > 0) {
+			avg = tempoExplo * 100 / (int) getNumberOfEntries();
+		}
 		return avg;
 	}
 
@@ -276,22 +276,20 @@ public class LogDAO {
 	 * @return nombre total
 	 */
 	public static int getPhotoCount() {
-		Database connectionBK = BerkeleyConnection.getConnection();
 		Cursor c = null;
+		Database connectionBK = BerkeleyConnection.getConnection();
 		int counter = 0;
 		try {
 			c = connectionBK.openCursor(null, null);
-			
-		    DatabaseEntry foundKey = new DatabaseEntry();
-		    DatabaseEntry foundData = new DatabaseEntry();
-		    while (c.getNext(foundKey, foundData, LockMode.DEFAULT) == OperationStatus.SUCCESS) {
-		    	counter ++;
-		    }
-		}
-		catch (Exception e) {
+
+			DatabaseEntry foundKey = new DatabaseEntry();
+			DatabaseEntry foundData = new DatabaseEntry();
+			while (c.getNext(foundKey, foundData, LockMode.DEFAULT) == OperationStatus.SUCCESS) {
+				counter++;
+			}
+		} catch (Exception e) {
 			e.printStackTrace();
-		}
-		finally {
+		} finally {
 			if (c != null) {
 				c.close();
 			}
@@ -309,25 +307,24 @@ public class LogDAO {
 		final List<String> planetList = new ArrayList<String>();
 		MongoDatabase connectionMongo = MongoConnection.getConnection();
 		MongoCollection<Document> collection = connectionMongo.getCollection("logentry");
-		
+
 		Document query = new Document();
-		Document orderBy = new Document ("date", -1);
+		Document orderBy = new Document("date", -1);
 		FindIterable<Document> iterator = collection.find(query).sort(orderBy).limit(limit);
-		
+
 		try {
 			iterator.forEach(new Block<Document>() {
 				@Override
 				public void apply(final Document document) {
-					if (document.getString("status").equals("Exploration")){
+					if (document.getString("status").equals("Exploration")) {
 						planetList.add(document.getString("planetName"));
 					}
 				}
 			});
-		}
-		catch (Exception e) {
+		} catch (Exception e) {
 			e.printStackTrace();
 		}
-		//jamais 5 seulement 4??
+		// jamais 5 seulement 4??
 		return planetList;
 	}
 
@@ -337,7 +334,38 @@ public class LogDAO {
 	 * @return le nom de la galaxie
 	 */
 	public static String getBestGalaxy() {
-		return "";
+		MongoDatabase connectionMongo = MongoConnection.getConnection();
+		final MongoCollection<Document> collection = connectionMongo.getCollection("logentry");
+		Document where = new Document("status", "Exploration");
+		where.append("habitable", true);
+		Document orderBy = new Document("galaxyName", 1);
+		FindIterable<Document> iterator = collection.find(where).sort(orderBy);
+		final List<Long> counterList = new ArrayList<Long>();
+		final List<String> bestGalaxyList = new ArrayList<String>();
+
+		try {
+
+			iterator.forEach(new Block<Document>() {
+				@Override
+				public void apply(final Document document) {
+					long counter = 0;
+					counter = collection.count(new Document("galaxyName", document.getString("galaxyName")));
+					counterList.add(counter);
+					for (int i = 1; i < counterList.size(); i++) {
+						if (counterList.get(i) > counterList.get(i - 1)) {
+							if (bestGalaxyList.size() > 0) {
+								bestGalaxyList.set(0, document.getString("galaxyName"));
+							} else {
+								bestGalaxyList.add(0, document.getString("galaxyName"));
+							}
+						}
+					}
+				}
+			});
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return bestGalaxyList.get(0);
 	}
 
 	/**
@@ -349,18 +377,22 @@ public class LogDAO {
 	 *         "toPlanet", ou null si aucun chemin trouvé
 	 */
 	public static List<String> getTrajectory(String fromPlanet, String toPlanet) {
+		// non fonctionnel :(
 		MongoDatabase connectionMongo = MongoConnection.getConnection();
 		MongoCollection<Document> collection = connectionMongo.getCollection("logentry");
-		long planetCount = 0;
-		//String tempoString = null;
+		List <String> trajectoryList = new ArrayList<String>();
+		Document where = new Document("planetName", fromPlanet);
+		where.append("planets", toPlanet);
 		
-		Document where = new Document("planets", fromPlanet);
-		
-		planetCount = collection.count(where);
-		System.out.println(planetCount);
-		
-		
-		return null;
+		if (collection.count(where)>0) {
+			trajectoryList.add(fromPlanet);
+			trajectoryList.add(toPlanet);
+			
+		}
+		else {
+			trajectoryList = null;
+		}
+		return trajectoryList;
 	}
 
 	/**
@@ -372,7 +404,33 @@ public class LogDAO {
 	 *         exemple : Andromède (7 planètes visitées), ...
 	 */
 	public static List<String> getExploredGalaxies(int limit) {
-		List<String> galaxyList = new ArrayList<String>();
+		final List<String> galaxyList = new ArrayList<String>();
+		MongoDatabase connectionMongo = MongoConnection.getConnection();
+		final MongoCollection<Document> collection = connectionMongo.getCollection("logentry");
+		// where statut est explo -> group by galaxies ->
+		Document where = new Document("status", "Exploration");
+		Document orderBy = new Document("galaxyName", 1);
+		FindIterable<Document> iterator = collection.find(where).sort(orderBy);
+
+		try {
+
+			iterator.forEach(new Block<Document>() {
+				@Override
+				public void apply(final Document document) {
+					long counter = 0;
+					counter = collection.count(new Document("galaxyName", document.getString("galaxyName")));
+					// un if qui peut limité à une présence dans la list...(je n'ait pas trouvé)
+					if (!galaxyList.contains(document.getString("galaxyName"))) {
+						String result = String.format(
+								" " + document.getString("galaxyName") + " ( " + counter + " planètes visitées ) ");
+						galaxyList.add(result + "");
+					}
+
+				}
+			});
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 
 		return galaxyList;
 	}
@@ -384,28 +442,26 @@ public class LogDAO {
 		boolean success = false;
 		Database connectionBK = BerkeleyConnection.getConnection();
 		Cursor c = null;
-		List <String> aDelete = new ArrayList<String>();
+		List<String> aDelete = new ArrayList<String>();
 		MongoDatabase connectionMongo = MongoConnection.getConnection();
 		MongoCollection<Document> collection = connectionMongo.getCollection("logentry");
 		try {
 			// BerkeleyDB
 			c = connectionBK.openCursor(null, null);
-			
-		    DatabaseEntry foundKey = new DatabaseEntry();
-		    DatabaseEntry foundData = new DatabaseEntry();
-		    while (c.getNext(foundKey, foundData, LockMode.DEFAULT) == OperationStatus.SUCCESS) {
-		    	aDelete.add(new String(foundKey.getData(), "UTF-8"));
-		    }
-		    
-		    // MongoDB
-		    
-		    collection.drop();
-		}
-		catch (Exception e) {
+
+			DatabaseEntry foundKey = new DatabaseEntry();
+			DatabaseEntry foundData = new DatabaseEntry();
+			while (c.getNext(foundKey, foundData, LockMode.DEFAULT) == OperationStatus.SUCCESS) {
+				aDelete.add(new String(foundKey.getData(), "UTF-8"));
+			}
+
+			// MongoDB
+
+			collection.drop();
+		} catch (Exception e) {
 			e.printStackTrace();
 			success = false;
-		}
-		finally {
+		} finally {
 			if (c != null) {
 				c.close();
 				// Berkeley suite
@@ -413,8 +469,7 @@ public class LogDAO {
 					try {
 						DatabaseEntry foundKey = new DatabaseEntry(delKey.getBytes("UTF-8"));
 						connectionBK.delete(null, foundKey);
-					}
-					catch(UnsupportedEncodingException e) {
+					} catch (UnsupportedEncodingException e) {
 						e.printStackTrace();
 						success = false;
 					}
@@ -422,27 +477,25 @@ public class LogDAO {
 			}
 			success = true;
 		}
-		
+
 		return success;
 	}
-	
-	public static byte[] getPlanetImage (String key) {
+
+	public static byte[] getPlanetImage(String key) {
 		byte[] image = null;
 		Database connectionBK = BerkeleyConnection.getConnection();
-		
+
 		try {
 			DatabaseEntry theKey = new DatabaseEntry(key.getBytes("UTF-8"));
 			DatabaseEntry theData = new DatabaseEntry();
-			
-			if (connectionBK.get(null, theKey, theData, LockMode.DEFAULT) == OperationStatus.SUCCESS) { 
-		        image = theData.getData();
-			}
-			else {
-			        System.out.println("Element inexistant");
+
+			if (connectionBK.get(null, theKey, theData, LockMode.DEFAULT) == OperationStatus.SUCCESS) {
+				image = theData.getData();
+			} else {
+				System.out.println("Element inexistant");
 			}
 
-		}
-		catch (Exception e) {
+		} catch (Exception e) {
 			e.printStackTrace();
 		}
 		return image;
